@@ -420,19 +420,29 @@ class Daly_Can(Battery):
                     else:
                         self.protection.low_temperature = 0
 
-                    if al_crnt_soc & 2:
+                    # When INVERT_CURRENT_MEASUREMENT == -1 the BMS's charge/discharge
+                    # polarity is swapped relative to the driver's convention, so the
+                    # alarm bits must be mapped accordingly.
+                    if INVERT_CURRENT_MEASUREMENT == -1:
+                        charge_alarm_bit, charge_prealarm_bit = 8, 4
+                        discharge_alarm_bit, discharge_prealarm_bit = 2, 1
+                    else:
+                        charge_alarm_bit, charge_prealarm_bit = 2, 1
+                        discharge_alarm_bit, discharge_prealarm_bit = 8, 4
+
+                    if al_crnt_soc & charge_alarm_bit:
                         # High charge current - Alarm
                         self.protection.high_charge_current = 2
-                    elif al_crnt_soc & 1:
+                    elif al_crnt_soc & charge_prealarm_bit:
                         # High charge current - Pre-alarm
                         self.protection.high_charge_current = 1
                     else:
                         self.protection.high_charge_current = 0
 
-                    if al_crnt_soc & 8:
+                    if al_crnt_soc & discharge_alarm_bit:
                         # High discharge current - Alarm
                         self.protection.high_discharge_current = 2
-                    elif al_crnt_soc & 4:
+                    elif al_crnt_soc & discharge_prealarm_bit:
                         # High discharge current - Pre-alarm
                         self.protection.high_discharge_current = 1
                     else:
