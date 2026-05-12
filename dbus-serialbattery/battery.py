@@ -357,6 +357,12 @@ class Battery(ABC):
         self.linear_cvl_last_set: int = 0
         self.linear_ccl_last_set: int = 0
         self.linear_dcl_last_set: int = 0
+        self.ccl_hold_start_time: int = None
+        self.ccl_ramp_start_time: int = None
+        self.ccl_ramp_start_value: float = None
+        self.dcl_hold_start_time: int = None
+        self.dcl_ramp_start_time: int = None
+        self.dcl_ramp_start_value: float = None
         self.heating: bool = None
         self.heater_current: float = None
         self.heater_power: float = None
@@ -1113,27 +1119,69 @@ class Battery(ABC):
         - after CVL_RECALCULATION_EVERY passed
         - if CCL changes to 0
         - if CCL changes more than CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE
+        - if CCL is recovering (ramp bypasses throttle for per-cycle updates)
         """
         ccl = round(min(charge_limits), 3)
         diff = abs(self.control_charge_current - ccl) if self.control_charge_current is not None else 0
+        recovering_ccl = self.control_charge_current is not None and ccl > self.control_charge_current
         if (
-            int(time()) - self.linear_ccl_last_set >= utils.CVL_RECALCULATION_EVERY
-            or (diff >= self.control_charge_current * utils.CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE / 100)
+            recovering_ccl  # always update during recovery so the ramp progresses every cycle
+            or int(time()) - self.linear_ccl_last_set >= utils.CVL_RECALCULATION_EVERY
+            or (diff >= (self.control_charge_current or 0) * utils.CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE / 100)
             or (ccl == 0 and self.control_charge_current != 0)
         ):
             self.linear_ccl_last_set = int(time())
 
-            # Introduce a threshold mechanism to prevent flapping
             if ccl == 0:
+                # Hard stop - always immediate, cancel hold and ramp
+                self.control_charge_current = 0
+                self.charge_limitation = charge_limits[min(charge_limits)]
+                self.ccl_hold_start_time = None
+                self.ccl_ramp_start_time = None
+                self.ccl_ramp_start_value = None
+            elif not recovering_ccl:
+                # Restriction or no change - apply immediately, cancel hold and ramp
                 self.control_charge_current = ccl
                 self.charge_limitation = charge_limits[min(charge_limits)]
+                self.ccl_hold_start_time = None
+                self.ccl_ramp_start_time = None
+                self.ccl_ramp_start_value = None
             else:
-                # Don't allow recovery if the new allowed current is smaller than 1% of the previous allowed current
+                # Recovery (ccl > current) - check threshold, then hold, then ramp
                 if self.control_charge_current == 0 and ccl < utils.MAX_BATTERY_CHARGE_CURRENT * utils.CHARGE_CURRENT_RECOVERY_THRESHOLD_PERCENT:
+                    # Below threshold - stay at 0, don't start hold yet
                     self.charge_limitation = charge_limits[min(charge_limits)] + " *"
+                    self.ccl_hold_start_time = None
+                    self.ccl_ramp_start_time = None
+                    self.ccl_ramp_start_value = None
                 else:
-                    self.control_charge_current = ccl
-                    self.charge_limitation = charge_limits[min(charge_limits)]
+                    if self.ccl_hold_start_time is None:
+                        self.ccl_hold_start_time = int(time())
+                    seconds_since_recovery = int(time()) - self.ccl_hold_start_time
+                    if seconds_since_recovery < utils.CCL_RECOVERY_HOLD_SEC:
+                        # Hold period - wait for condition to stabilize before ramping
+                        self.charge_limitation = charge_limits[min(charge_limits)] + " *"
+                        self.ccl_ramp_start_time = None
+                        self.ccl_ramp_start_value = None
+                    else:
+                        if utils.CCL_RECOVERY_RATE_A_PER_SEC <= 0:
+                            # Instant recovery (ramp disabled)
+                            new_ccl = ccl
+                            self.ccl_hold_start_time = None
+                            self.ccl_ramp_start_time = None
+                            self.ccl_ramp_start_value = None
+                        else:
+                            if self.ccl_ramp_start_time is None:
+                                self.ccl_ramp_start_time = int(time())
+                                self.ccl_ramp_start_value = self.control_charge_current or 0
+                            elapsed = int(time()) - self.ccl_ramp_start_time
+                            new_ccl = round(min(ccl, self.ccl_ramp_start_value + utils.CCL_RECOVERY_RATE_A_PER_SEC * elapsed), 3)
+                            if new_ccl >= ccl:
+                                self.ccl_hold_start_time = None
+                                self.ccl_ramp_start_time = None
+                                self.ccl_ramp_start_value = None
+                        self.control_charge_current = new_ccl
+                        self.charge_limitation = charge_limits[min(charge_limits)]
 
         # set allow to charge to no, if CCL is 0
         if self.control_charge_current == 0:
@@ -1211,27 +1259,69 @@ class Battery(ABC):
         - after CVL_RECALCULATION_EVERY passed
         - if DCL changes to 0
         - if DCL changes more than CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE
+        - if DCL is recovering (ramp bypasses throttle for per-cycle updates)
         """
         dcl = round(min(discharge_limits), 3)
         diff = abs(self.control_discharge_current - dcl) if self.control_discharge_current is not None else 0
+        recovering_dcl = self.control_discharge_current is not None and dcl > self.control_discharge_current
         if (
-            int(time()) - self.linear_dcl_last_set >= utils.CVL_RECALCULATION_EVERY
-            or (diff >= self.control_discharge_current * utils.CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE / 100)
+            recovering_dcl  # always update during recovery so the ramp progresses every cycle
+            or int(time()) - self.linear_dcl_last_set >= utils.CVL_RECALCULATION_EVERY
+            or (diff >= (self.control_discharge_current or 0) * utils.CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE / 100)
             or (dcl == 0 and self.control_discharge_current != 0)
         ):
             self.linear_dcl_last_set = int(time())
 
-            # Introduce a threshold mechanism to prevent flapping
             if dcl == 0:
+                # Hard stop - always immediate, cancel hold and ramp
+                self.control_discharge_current = 0
+                self.discharge_limitation = discharge_limits[min(discharge_limits)]
+                self.dcl_hold_start_time = None
+                self.dcl_ramp_start_time = None
+                self.dcl_ramp_start_value = None
+            elif not recovering_dcl:
+                # Restriction or no change - apply immediately, cancel hold and ramp
                 self.control_discharge_current = dcl
                 self.discharge_limitation = discharge_limits[min(discharge_limits)]
+                self.dcl_hold_start_time = None
+                self.dcl_ramp_start_time = None
+                self.dcl_ramp_start_value = None
             else:
-                # Don't allow recovery if the new allowed current is smaller than 1% of the previous allowed current
+                # Recovery (dcl > current) - check threshold, then hold, then ramp
                 if self.control_discharge_current == 0 and dcl < utils.MAX_BATTERY_DISCHARGE_CURRENT * utils.DISCHARGE_CURRENT_RECOVERY_THRESHOLD_PERCENT:
+                    # Below threshold - stay at 0, don't start hold yet
                     self.discharge_limitation = discharge_limits[min(discharge_limits)] + " *"
+                    self.dcl_hold_start_time = None
+                    self.dcl_ramp_start_time = None
+                    self.dcl_ramp_start_value = None
                 else:
-                    self.control_discharge_current = dcl
-                    self.discharge_limitation = discharge_limits[min(discharge_limits)]
+                    if self.dcl_hold_start_time is None:
+                        self.dcl_hold_start_time = int(time())
+                    seconds_since_recovery = int(time()) - self.dcl_hold_start_time
+                    if seconds_since_recovery < utils.DCL_RECOVERY_HOLD_SEC:
+                        # Hold period - wait for condition to stabilize before ramping
+                        self.discharge_limitation = discharge_limits[min(discharge_limits)] + " *"
+                        self.dcl_ramp_start_time = None
+                        self.dcl_ramp_start_value = None
+                    else:
+                        if utils.DCL_RECOVERY_RATE_A_PER_SEC <= 0:
+                            # Instant recovery (ramp disabled)
+                            new_dcl = dcl
+                            self.dcl_hold_start_time = None
+                            self.dcl_ramp_start_time = None
+                            self.dcl_ramp_start_value = None
+                        else:
+                            if self.dcl_ramp_start_time is None:
+                                self.dcl_ramp_start_time = int(time())
+                                self.dcl_ramp_start_value = self.control_discharge_current or 0
+                            elapsed = int(time()) - self.dcl_ramp_start_time
+                            new_dcl = round(min(dcl, self.dcl_ramp_start_value + utils.DCL_RECOVERY_RATE_A_PER_SEC * elapsed), 3)
+                            if new_dcl >= dcl:
+                                self.dcl_hold_start_time = None
+                                self.dcl_ramp_start_time = None
+                                self.dcl_ramp_start_value = None
+                        self.control_discharge_current = new_dcl
+                        self.discharge_limitation = discharge_limits[min(discharge_limits)]
 
         # set allow to discharge to no, if DCL is 0
         if self.control_discharge_current == 0:

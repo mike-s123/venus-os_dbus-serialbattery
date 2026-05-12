@@ -493,6 +493,22 @@ DISCHARGE_CURRENT_RECOVERY_THRESHOLD_PERCENT: float = get_float_from_config("DEF
 """
 Defines the percentage of the maximum discharge current that the battery has to reach to recover from a limitation.
 """
+CCL_RECOVERY_HOLD_SEC: int = get_int_from_config("DEFAULT", "CCL_RECOVERY_HOLD_SEC")
+"""
+Seconds to hold CCL steady after a recovery condition is detected, before ramping begins.
+"""
+CCL_RECOVERY_RATE_A_PER_SEC: float = get_float_from_config("DEFAULT", "CCL_RECOVERY_RATE_A_PER_SEC")
+"""
+Ramp rate in A/s for charge current recovery. Set to 0 for instant recovery (old behavior).
+"""
+DCL_RECOVERY_HOLD_SEC: int = get_int_from_config("DEFAULT", "DCL_RECOVERY_HOLD_SEC")
+"""
+Seconds to hold DCL steady after a recovery condition is detected, before ramping begins.
+"""
+DCL_RECOVERY_RATE_A_PER_SEC: float = get_float_from_config("DEFAULT", "DCL_RECOVERY_RATE_A_PER_SEC")
+"""
+Ramp rate in A/s for discharge current recovery. Set to 0 for instant recovery (old behavior).
+"""
 
 
 # --------- Time-To-Go ---------
