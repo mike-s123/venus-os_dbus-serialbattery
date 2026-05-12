@@ -1900,25 +1900,33 @@ class Battery(ABC):
 
         :return: The voltage of the cell with the lowest voltage
         """
+        cell_voltage_max = utils.MAX_CELL_VOLTAGE * 2
         min_voltage = None
         if hasattr(self, "cell_min_voltage"):
             min_voltage = self.cell_min_voltage
+            if min_voltage is not None and min_voltage > cell_voltage_max:
+                logger.warning(f"Implausible cell_min_voltage {min_voltage} V detected, ignoring")
+                min_voltage = None
 
         if min_voltage is None:
             try:
-                min_voltage = min(c.voltage for c in self.cells if c.voltage is not None)
+                min_voltage = min(c.voltage for c in self.cells if c.voltage is not None and c.voltage <= cell_voltage_max)
             except ValueError:
                 pass
         return min_voltage
 
     def get_max_cell_voltage(self) -> Union[float, None]:
+        cell_voltage_max = utils.MAX_CELL_VOLTAGE * 2
         max_voltage = None
         if hasattr(self, "cell_max_voltage"):
             max_voltage = self.cell_max_voltage
+            if max_voltage is not None and max_voltage > cell_voltage_max:
+                logger.warning(f"Implausible cell_max_voltage {max_voltage} V detected, ignoring")
+                max_voltage = None
 
         if max_voltage is None:
             try:
-                max_voltage = max(c.voltage for c in self.cells if c.voltage is not None)
+                max_voltage = max(c.voltage for c in self.cells if c.voltage is not None and c.voltage <= cell_voltage_max)
             except ValueError:
                 pass
         return max_voltage
