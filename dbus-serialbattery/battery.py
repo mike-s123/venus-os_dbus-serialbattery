@@ -2167,6 +2167,15 @@ class Battery(ABC):
                 # use current as it is
                 current = self.current
 
+        # When a FET is off, the BMS physically blocks that direction of current flow.
+        # Clamp to prevent calibration offsets from reporting non-physical current.
+        # Convention: negative = discharge, positive = charge.
+        if current is not None:
+            if self.discharge_fet is False:
+                current = max(0.0, current)
+            if self.charge_fet is False:
+                current = min(0.0, current)
+
         self.current_calc_last_time = current_time
         return current
 

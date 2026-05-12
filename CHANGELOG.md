@@ -65,6 +65,7 @@
 * Changed: Exit behavior for excluded devices to behave like Victron services by @mr-manuel
 * Changed: Fix dbus connection leak which fixes problems on systems which multiple batteries with https://github.com/mr-manuel/venus-os_dbus-serialbattery/pull/402 by @cgoudie
 * Changed: Fix issue with published JsonData, where None values were published as empty strings by @mr-manuel
+* Changed: Fix wrong current if charging/discharging is blocked and current map is used by @mr-manuel
 * Changed: Fixed discharge current limit calculations when MOSFET temperature is not available, by @dmitrych5
 * Changed: Fixed problems with the `BLOCK_ON_DISCONNECT` behavior. Fixes https://github.com/mr-manuel/venus-os_dbus-serialbattery/issues/309 by @mr-manuel
 * Changed: Fixed typo in activation instructions by @mr-manuel
