@@ -117,11 +117,8 @@ fi
 # the unconditional kill cycle that would otherwise tear down the freshly-started
 # BMS service ~30 s after it first comes up.
 # log the output to a file and run it in the background to prevent blocking the boot process
-old_rclocal_line="bash /data/apps/dbus-serialbattery/enable.sh > /data/apps/dbus-serialbattery/startup.log 2>&1 &"
-new_rclocal_line="bash /data/apps/dbus-serialbattery/enable.sh --boot > /data/apps/dbus-serialbattery/startup.log 2>&1 &"
-# remove the previous (unflagged) entry if present
-sed -i "\|^${old_rclocal_line}\$|d" "$filename"
-grep -qxF "$new_rclocal_line" "$filename" || echo "$new_rclocal_line" >> "$filename"
+rclocal_line="bash /data/apps/dbus-serialbattery/enable.sh --boot > /data/apps/dbus-serialbattery/startup.log 2>&1 &"
+grep -qxF "$rclocal_line" "$filename" || echo "$rclocal_line" >> "$filename"
 
 
 
@@ -174,7 +171,7 @@ bluetooth_bms=$(awk -F "=" '/^BLUETOOTH_BMS/ {print $2}' /data/apps/dbus-serialb
 #echo $bluetooth_bms
 
 # clear whitespaces
-bluetooth_bms_clean=$(echo "$bluetooth_bms" | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+bluetooth_bms_clean=$(echo "$bluetooth_bms" | tr -s ' ' | sed 's|^[[:space:]]*||;s|[[:space:]]*$||')
 #echo $bluetooth_bms_clean
 
 # split into array
@@ -228,7 +225,7 @@ if [ "$bluetooth_length" -gt 0 ]; then
                     echo "Build-in Bluetooth is disabled, use external Bluetooth dongle."
                 else
                     # Add 'disable-bt' to the end of an existing dtoverlay line
-                    sed -i '/^dtoverlay=/s/$/,disable-bt/' /u-boot/config.txt
+                    sed -i '\|^dtoverlay=|s|$|,disable-bt|' /u-boot/config.txt
                     echo "NOTICE! Build-in Bluetooth was disabled: 'disable-bt' has been added to the dtoverlay list. THIS NEEDS A MANUAL REBOOT!"
                 fi
             else
@@ -244,9 +241,9 @@ if [ "$bluetooth_length" -gt 0 ]; then
             # Enable built-in Bluetooth
             if grep -q "^dtoverlay=.*disable-bt" "/u-boot/config.txt"; then
                 # Remove 'disable-bt' from an existing dtoverlay line
-                sed -i '/^dtoverlay=/s/disable-bt,//g' /u-boot/config.txt  # Case: disable-bt is not at the end
-                sed -i '/^dtoverlay=/s/,disable-bt//g' /u-boot/config.txt  # Case: disable-bt is at the end
-                sed -i '/^dtoverlay=/s/disable-bt//g' /u-boot/config.txt   # Case: disable-bt is the only entry
+                sed -i '\|^dtoverlay=|s|disable-bt,||g' /u-boot/config.txt  # Case: disable-bt is not at the end
+                sed -i '\|^dtoverlay=|s|,disable-bt||g' /u-boot/config.txt  # Case: disable-bt is at the end
+                sed -i '\|^dtoverlay=|s|disable-bt||g' /u-boot/config.txt   # Case: disable-bt is the only entry
                 echo "NOTICE! Build-in Bluetooth was enabled: 'disable-bt' has been removed from the dtoverlay list. THIS NEEDS A MANUAL REBOOT!"
             else
                 echo "Build-in Bluetooth is used."
@@ -351,7 +348,7 @@ can_port=$(awk -F "=" '/^CAN_PORT/ {print $2}' /data/apps/dbus-serialbattery/con
 #echo $can_port
 
 # clear whitespaces
-can_port_clean="$(echo $can_port | sed 's/\s*,\s*/,/g')"
+can_port_clean="$(echo $can_port | sed 's|\s*,\s*|,|g')"
 #echo $can_port_clean
 
 # split into array
@@ -462,7 +459,7 @@ mqtt_topic=$(awk -F "=" '/^MQTT_TOPIC/ {print $2}' /data/apps/dbus-serialbattery
 #echo $mqtt_topic
 
 # clear whitespaces
-mqtt_topic_clean="$(echo $mqtt_topic | sed 's/\s*,\s*/,/g')"
+mqtt_topic_clean="$(echo $mqtt_topic | sed 's|\s*,\s*|,|g')"
 #echo $mqtt_topic_clean
 
 # split into array
@@ -563,8 +560,11 @@ fi
 # remove old drivers before changing from dbus-blebattery-$1 to dbus-blebattery.$1
 rm -rf /service/dbus-blebattery-*
 # remove old install scripts from rc.local
-sed -i '/^sh \/data\/etc\/dbus-serialbattery\//d' /data/rc.local
-sed -i "/^bash \/data\/etc\/dbus-serialbattery\//d" /data/rc.local
+sed -i \
+    -e '\|^sh /data/etc/dbus-serialbattery/|d' \
+    -e '\|^bash /data/etc/dbus-serialbattery/|d' \
+    -e '\|^bash /data/apps/dbus-serialbattery/enable.sh > /data/apps/dbus-serialbattery/startup.log 2>&1 &$|d' \
+    /data/rc.local
 ### needed for upgrading from older versions | end ###
 
 
