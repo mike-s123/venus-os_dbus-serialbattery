@@ -73,7 +73,7 @@
 * Changed: HLPDATA BMS - Fixed wrong charge/discharge fet assignment @mr-manuel
 * Changed: HLPDATA BMS - Fixed wrong charge/discharge fet assignment @mr-manuel
 * Changed: Improved BMS Cable Alarm Logic. Fixes https://github.com/mr-manuel/venus-os_dbus-serialbattery/issues/309 by @mr-manuel
-* Changed: JK Inverter BMS - Fixed serial number lenght by @mr-manuel
+* Changed: JK Inverter BMS - Fixed serial number length by @mr-manuel
 * Changed: JKBMS BLE - Fixed negative temperature display. Fixes https://github.com/mr-manuel/venus-os_dbus-serialbattery/issues/369 by @mr-manuel
 * Changed: JKBMS CAN - Correct calculation of arbitration_id for device_address > 0. Fixes https://github.com/mr-manuel/venus-os_dbus-serialbattery/issues/288 with https://github.com/mr-manuel/venus-os_dbus-serialbattery/pull/306 by @Hooorny
 * Changed: JKBMS PB - Auto-recover the shared RS485 port when the driver gets stuck after a USB re-plug or a persistent dead-bus: after 8 consecutive failed reads the fd is closed and reopened on next access by @hsteinhaus
@@ -313,7 +313,7 @@
 * Changed: Renogy BMS - Use port as unique identifier, since it's not possible to change any values on this BMS by @mr-manuel
 * Changed: Reworked, documented and cleaned up a lot of code by @mr-manuel
 * Changed: Set default charge/discharge current from utils in main battery class by @mr-manuel
-* Changed: Show non blocking errors only, if more than 180 occured in the last 3 hours (1 per minute) and do not block inverting/charging by @mr-manuel
+* Changed: Show non blocking errors only, if more than 180 occurred in the last 3 hours (1 per minute) and do not block inverting/charging by @mr-manuel
 * Changed: The setting `HELTEC_MODBUS_ADDR` was replaced by `MODBUS_ADDRESSES` in the `config.default.ini` by @mr-manuel
 * Changed: Updated `battery_template.py` and added tons of descriptions by @mr-manuel
 

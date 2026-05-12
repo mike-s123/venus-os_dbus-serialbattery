@@ -526,7 +526,7 @@ class Generic_AioBmsBle(Battery):
             for idx in range(min(self.cell_count, len(cell_voltages))):
                 self.cells[idx].voltage = cell_voltages[idx]
 
-            # show wich cells are balancing
+            # show which cells are balancing
             self.balancing = self.aiobmsble_data.get("balancer", None)
             if self.balancing is not None and self.get_min_cell() is not None and self.get_max_cell() is not None:
                 for c in range(self.cell_count):

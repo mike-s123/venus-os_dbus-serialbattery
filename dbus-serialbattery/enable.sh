@@ -356,8 +356,8 @@ IFS="," read -r -a can_array <<< "$can_port_clean"
 #declare -p can_array
 # readarray -td, can_array <<< "$can_port_clean,"; unset 'can_array[-1]'; declare -p can_array;
 
-can_lenght=${#can_array[@]}
-# echo $can_lenght
+can_length=${#can_array[@]}
+# echo $can_length
 
 # stop all dbus-canbattery services, if at least one exists
 if ls /service/dbus-canbattery.* 1> /dev/null 2>&1; then
@@ -378,10 +378,10 @@ if ls /service/dbus-canbattery.* 1> /dev/null 2>&1; then
 fi
 
 
-if [ "$can_lenght" -gt 0 ]; then
+if [ "$can_length" -gt 0 ]; then
 
     echo
-    echo "Found $can_lenght CAN port(s) in the config file!"
+    echo "Found $can_length CAN port(s) in the config file!"
     echo
 
     # Required packages, shipped with the driver:
@@ -435,7 +435,7 @@ if [ "$can_lenght" -gt 0 ]; then
     # install_canbattery_service can0
     # install_canbattery_service can9
 
-    for (( i=0; i<can_lenght; i++ ));
+    for (( i=0; i<can_length; i++ ));
     do
         install_canbattery_service "${can_array[$i]}"
     done
@@ -467,8 +467,8 @@ IFS="," read -r -a mqtt_array <<< "$mqtt_topic_clean"
 #declare -p mqtt_array
 # readarray -td, mqtt_array <<< "$mqtt_topic_clean,"; unset 'mqtt_array[-1]'; declare -p mqtt_array;
 
-mqtt_lenght=${#mqtt_array[@]}
-# echo $mqtt_lenght
+mqtt_length=${#mqtt_array[@]}
+# echo $mqtt_length
 
 # stop dbus-mqttbattery service
 if [ -d "/service/dbus-mqttbattery" ]; then
@@ -485,10 +485,10 @@ if [ -d "/service/dbus-mqttbattery" ]; then
 fi
 
 
-if [ "$mqtt_lenght" -gt 0 ]; then
+if [ "$mqtt_length" -gt 0 ]; then
 
     echo
-    echo "Found $mqtt_lenght MQTT topic(s) in the config file!"
+    echo "Found $mqtt_length MQTT topic(s) in the config file!"
     echo
 
     # Required packages, shipped with the driver:

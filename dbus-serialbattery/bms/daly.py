@@ -381,7 +381,7 @@ class Daly(Battery):
 
         if cells_volts_data is False and self.cells_volts_data_lastreadbad is True:
             # if this read out and the last one were bad, report error.
-            # (we don't report single errors, as current daly firmware sends corrupted cells volts data occassionally)
+            # (we don't report single errors, as current daly firmware sends corrupted cells volts data occasionally)
             logger.debug("No or invalid data has been received repeatedly in read_cells_volts()")
             return False
         elif cells_volts_data is False:
@@ -709,7 +709,7 @@ class Daly(Battery):
 
     def read_sentence(self, ser, expected_reply, timeout=0.5):
         """read one 13 byte sentence from daly smart bms.
-        return false if less than 13 bytes received in timeout secs, or frame errors occured
+        return false if less than 13 bytes received in timeout secs, or frame errors occurred
         return received datasection as bytearray else
         """
         time_start = time()
