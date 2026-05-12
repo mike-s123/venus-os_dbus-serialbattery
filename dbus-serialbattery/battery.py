@@ -339,6 +339,7 @@ class Battery(ABC):
         self.cells: List[Cell] = []
         self.control_voltage: float = None
         self.control_voltage_last_limit_time: int = None
+        self.control_voltage_ramp_base: float = None
         self.soc_reset_requested: bool = False
         self.soc_reset_last_reached: int = 0  # save state to preserve on restart
         self.soc_reset_battery_voltage: int = None
@@ -827,12 +828,14 @@ class Battery(ABC):
                 # Set control voltage immediately, if not reduced by the controller
                 if control_voltage >= self.max_battery_voltage and self.control_voltage_last_limit_time is None:
                     self.control_voltage = round(self.max_battery_voltage, 6)
+                    self.control_voltage_ramp_base = None
 
-                # Set control voltage immediately, if control voltage is lower then previous control voltage
+                # Set control voltage immediately, if control voltage is lower than previous control voltage
                 # or if it remains the same
                 elif self.control_voltage is None or control_voltage <= self.control_voltage:
                     self.control_voltage_last_limit_time = current_time
                     self.control_voltage = round(control_voltage, 6)
+                    self.control_voltage_ramp_base = None
                     self.charge_mode += " (Cell OVP)"  # Cell over voltage protection
 
                 # Slowly recover
@@ -843,19 +846,28 @@ class Battery(ABC):
 
                     seconds_since_limit = current_time - self.control_voltage_last_limit_time
                     # Calculate the allowed recovery voltage
-                    if seconds_since_limit < 60:
-                        allowed_voltage = self.control_voltage  # hold voltage steady
+                    if seconds_since_limit < utils.CVL_RECOVERY_HOLD_SEC:
+                        # Hold: continuously update ramp_base so it equals the held voltage when ramp starts
+                        self.control_voltage_ramp_base = self.control_voltage
+                        allowed_voltage = self.control_voltage
                         self.charge_mode += " (Cell OVP)"  # Cell over voltage protection
                     else:
-                        allowed_voltage = min(
-                            self.control_voltage + VOLTAGE_STEP_PER_SECOND * (seconds_since_limit - 60),
-                            self.max_battery_voltage,
-                        )
+                        # Ramp: use the voltage captured at hold-end as a fixed base to avoid quadratic growth
+                        if self.control_voltage_ramp_base is None:
+                            self.control_voltage_ramp_base = self.control_voltage
+                        if utils.CVL_RECOVERY_RATE_V_PER_SEC <= 0:
+                            allowed_voltage = min(control_voltage, self.max_battery_voltage)
+                        else:
+                            allowed_voltage = min(
+                                self.control_voltage_ramp_base + utils.CVL_RECOVERY_RATE_V_PER_SEC * (seconds_since_limit - utils.CVL_RECOVERY_HOLD_SEC),
+                                self.max_battery_voltage,
+                            )
                         self.charge_mode += " (Cell OVP*)"  # Cell over voltage protection
 
-                    # If control voltage is the same as max battery voltage, reset control_voltage_last_limit_time
+                    # If control voltage reached max battery voltage, reset timers
                     if allowed_voltage == self.max_battery_voltage:
                         self.control_voltage_last_limit_time = None
+                        self.control_voltage_ramp_base = None
 
                     self.control_voltage = round(allowed_voltage, 6)
 

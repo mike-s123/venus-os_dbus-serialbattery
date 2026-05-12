@@ -315,6 +315,8 @@ check_config_issue(
 CHARGE_MODE: int = get_int_from_config("DEFAULT", "CHARGE_MODE")
 CVL_RECALCULATION_EVERY: int = get_int_from_config("DEFAULT", "CVL_RECALCULATION_EVERY")
 CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE: int = get_int_from_config("DEFAULT", "CVL_RECALCULATION_ON_MAX_PERCENTAGE_CHANGE")
+CVL_RECOVERY_HOLD_SEC: int = get_int_from_config("DEFAULT", "CVL_RECOVERY_HOLD_SEC")
+CVL_RECOVERY_RATE_V_PER_SEC: float = get_float_from_config("DEFAULT", "CVL_RECOVERY_RATE_V_PER_SEC")
 
 
 # --------- Charge Voltage Limitation (affecting CVL) ---------
