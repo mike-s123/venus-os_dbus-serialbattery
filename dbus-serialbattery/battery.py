@@ -116,27 +116,27 @@ class History:
         """
         Deepest discharge in Ampere hours (lifetime).
         Overwritten each time the battery discharges deeper.
-        **Should be negative.**
+        Stored as positive; published as negative to dbus.
         """
 
         self.last_discharge: float = None
         """
         Last discharge in Ampere hours until the battery was charged again.
-        **Should be negative.**
+        Stored as positive; published as negative to dbus.
         """
 
         self.average_discharge: float = None
         """
         Average discharge in Ampere hours.
         Cumulative Ah drawn divided by total cycles.
-        **Should be negative.**
+        Stored as positive; published as negative to dbus.
         """
 
         self.total_ah_drawn: float = None
         """
         Total Ah drawn (lifetime).
         Cumulative Amp hours drawn from the battery.
-        **Should be negative.**
+        Stored as positive; published as negative to dbus.
         """
 
         # Charge
@@ -150,6 +150,12 @@ class History:
         self.timestamp_last_full_charge: int = None
         """
         Timestamp of full charge.
+        """
+
+        self.automatic_syncs: int = None
+        """
+        Number of automatic synchronisations (lifetime).
+        Incremented each time the battery reaches full charge.
         """
 
         self.full_discharges: int = None
@@ -231,6 +237,7 @@ class History:
                 "total_ah_drawn",
                 "charge_cycles",
                 "timestamp_last_full_charge",
+                "automatic_syncs",
                 "full_discharges",
                 "minimum_voltage",
                 "maximum_voltage",
@@ -911,6 +918,13 @@ class Battery(ABC):
                         # Set timestamp of full charge for history
                         if "timestamp_last_full_charge" not in self.history.exclude_values_to_calculate:
                             self.history.timestamp_last_full_charge = int(time())
+
+                        # Increment synchronisation count for history
+                        if "automatic_syncs" not in self.history.exclude_values_to_calculate:
+                            if self.history.automatic_syncs is None:
+                                self.history.automatic_syncs = 1
+                            else:
+                                self.history.automatic_syncs += 1
 
                         if utils.SOC_CALCULATION:
                             logger.info("SOC set to 100%")
@@ -2390,12 +2404,13 @@ class Battery(ABC):
         Calculate missing values based on the history data
         """
         if "deepest_discharge" not in self.history.exclude_values_to_calculate and self.get_capacity_consumed() is not None:
-            # Has to be negative
-            if self.history.deepest_discharge is None or self.history.deepest_discharge > self.get_capacity_consumed():
-                self.history.deepest_discharge = self.get_capacity_consumed()
+            # Stored as positive; negated to negative when published to dbus
+            capacity_consumed = abs(self.get_capacity_consumed())
+            if self.history.deepest_discharge is None or self.history.deepest_discharge < capacity_consumed:
+                self.history.deepest_discharge = capacity_consumed
 
         if "last_discharge" not in self.history.exclude_values_to_calculate:
-            # Has to be negative
+            # Stored as positive; negated to negative when published to dbus
             if self.history.last_discharge is None:
                 self.history.last_discharge = 0
             elif self.current_avg is not None:
@@ -2416,11 +2431,11 @@ class Battery(ABC):
                     self.full_discharge_active = False
 
         if "total_ah_drawn" not in self.history.exclude_values_to_calculate:
-            # Has to be negative
+            # Stored as positive; negated to negative when published to dbus
             if self.history.total_ah_drawn is None:
                 # Check if charge_cycles are already available from BMS
                 if self.history.charge_cycles is not None and self.history.charge_cycles > 0 and self.capacity is not None and self.capacity > 0:
-                    self.history.total_ah_drawn = self.history.charge_cycles * self.capacity * -1
+                    self.history.total_ah_drawn = self.history.charge_cycles * self.capacity
                 else:
                     self.history.total_ah_drawn = 0
             elif self.charge_discharged is not None:
@@ -2433,7 +2448,7 @@ class Battery(ABC):
                 self.history.charge_cycles = self.history.total_ah_drawn / self.capacity
 
         if "average_discharge" not in self.history.exclude_values_to_calculate:
-            # Has to be negative
+            # Stored as positive; negated to negative when published to dbus
             if self.history.total_ah_drawn is not None and self.history.charge_cycles is not None and self.history.charge_cycles > 0:
                 self.history.average_discharge = self.history.total_ah_drawn / self.history.charge_cycles
 
@@ -2521,7 +2536,7 @@ class Battery(ABC):
             # Reset voltage history values
             3: ["minimum_voltage", "maximum_voltage", "minimum_cell_voltage", "maximum_cell_voltage"],
             # Reset time history values
-            4: ["timestamp_last_full_charge"],
+            4: ["timestamp_last_full_charge", "automatic_syncs"],
             # Reset alarm history values
             5: ["low_voltage_alarms", "high_voltage_alarms"],
             # Reset temperature history values

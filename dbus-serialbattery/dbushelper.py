@@ -755,6 +755,7 @@ class DbusHelper:
         self._dbusservice.add_path("/History/MinimumCellVoltage", None, writeable=True)
         self._dbusservice.add_path("/History/MaximumCellVoltage", None, writeable=True)
         self._dbusservice.add_path("/History/TimeSinceLastFullCharge", None, writeable=True)
+        self._dbusservice.add_path("/History/AutomaticSyncs", None, writeable=True)
         self._dbusservice.add_path("/History/LowVoltageAlarms", None, writeable=True)
         self._dbusservice.add_path("/History/HighVoltageAlarms", None, writeable=True)
         self._dbusservice.add_path("/History/MinimumTemperature", None, writeable=True)
@@ -1135,6 +1136,7 @@ class DbusHelper:
         self._dbusservice["/History/TimeSinceLastFullCharge"] = (
             int(time()) - self.battery.history.timestamp_last_full_charge if self.battery.history.timestamp_last_full_charge is not None else None
         )
+        self._dbusservice["/History/AutomaticSyncs"] = self.battery.history.automatic_syncs
         self._dbusservice["/History/LowVoltageAlarms"] = self.battery.history.low_voltage_alarms
         self._dbusservice["/History/HighVoltageAlarms"] = self.battery.history.high_voltage_alarms
         self._dbusservice["/History/MinimumTemperature"] = self.battery.history.minimum_temperature
