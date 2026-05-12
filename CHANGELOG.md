@@ -16,7 +16,7 @@
 * Driver version greater or equal to `v2.1.20251222dev`
   * The unique identifier for all Bluetooth BMS devices is now the BLE MAC address. Because of this change, your battery will appear as a new device after the update. Custom names and calculated data will be lost once during the upgrade.
 
-* Driver version greater or equal to `v2.1.20260105`
+* Driver version greater or equal to `v2.1.20260105dev`
   * Moved d-bus/MQTT path from `/Io/ForceChargingOff` to `/Settings/ForceChargingOff`
   * Moved d-bus/MQTT path from `/Io/ForceDischargingOff` to `/Settings/ForceDischargingOff`
   * Moved d-bus/MQTT path from `/Io/TurnBalancingOff` to `/Settings/TurnBalancingOff`
@@ -68,6 +68,7 @@
 * Changed: Fixed discharge current limit calculations when MOSFET temperature is not available, by @dmitrych5
 * Changed: Fixed problems with the `BLOCK_ON_DISCONNECT` behavior. Fixes https://github.com/mr-manuel/venus-os_dbus-serialbattery/issues/309 by @mr-manuel
 * Changed: Fixed typo in activation instructions by @mr-manuel
+* Changed: GUIv2 - With Venus OS `v3.80~21` GUIv2 plugins are used instead of fully customized GUI by @mr-manuel
 * Changed: GUIv2: Add cell diff to mean and improve calculations to reduce CPU load. Fixes https://github.com/mr-manuel/venus-os_dbus-serialbattery/issues/360 by @mr-manuel
 * Changed: HLPDATA BMS - Fixed wrong charge/discharge fet assignment @mr-manuel
 * Changed: HLPDATA BMS - Fixed wrong charge/discharge fet assignment @mr-manuel
