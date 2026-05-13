@@ -607,6 +607,8 @@ class DbusHelper:
         self._dbusservice.add_path("/Family", self.battery.hardware_version)
 
         self._dbusservice.add_path("/State", self.battery.state, writeable=True)
+        self._dbusservice.add_path("/Mode", 3, writeable=True)
+        self._dbusservice.add_path("/DeviceState", None, writeable=True)
         self._dbusservice.add_path("/ErrorCode", self.battery.error_code, writeable=True)
         self._dbusservice.add_path("/ConnectionInformation", "")
 
@@ -1114,6 +1116,32 @@ class DbusHelper:
 
         # Update battery extras
         self._dbusservice["/State"] = self.battery.state
+
+        # Switch_DeviceState enum: 0x100=Connected, 0x101=Over_Temperature, 0x102=Temperature_Warning,
+        # 0x103=Channel_Fault, 0x104=Channel_Tripped, 0x105=Under_Voltage
+        if self.battery.protection.internal_failure == 2:
+            device_state = 0x103
+        elif self.battery.protection.high_temperature == 2 or self.battery.protection.high_charge_temperature == 2:
+            device_state = 0x101
+        elif self.battery.protection.high_temperature == 1 or self.battery.protection.high_charge_temperature == 1:
+            device_state = 0x102
+        elif self.battery.protection.low_voltage == 2:
+            device_state = 0x105
+        elif not self.battery.get_allow_to_charge() and not self.battery.get_allow_to_discharge():
+            device_state = 0x104
+        else:
+            device_state = 0x100
+        self._dbusservice["/DeviceState"] = device_state
+
+        # Mode 4=Off (BMS-forced, read-only in GUI), 3=On, 0xfc=Standby (user-selectable)
+        if self.battery.state == 14:
+            self._dbusservice["/Mode"] = 4
+        elif not self.battery.get_allow_to_charge() and not self.battery.get_allow_to_discharge():
+            self._dbusservice["/Mode"] = 0xFC
+        elif self._dbusservice["/Mode"] in (4, 0xFC):
+            # Recover to On once protection clears or shutdown ends
+            self._dbusservice["/Mode"] = 3
+
         # https://github.com/victronenergy/veutil/blob/master/inc/veutil/ve_regs_payload.h
         # https://github.com/victronenergy/veutil/blob/master/src/qt/bms_error.cpp
         self._dbusservice["/ErrorCode"] = self.battery.error_code
