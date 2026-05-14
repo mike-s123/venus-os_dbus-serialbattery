@@ -1671,9 +1671,9 @@ class DbusHelper:
         """
         if value != 0:
             if utils.SOC_CALCULATION:
-                self.soc_calc = self.callback_value_reset_soc_to
-                self.soc_calc_capacity_remain = None  # reset SOC calculation cache, since SOC was force set
-                logger.info(f"SOC reset to {self.soc_calc}% by user")
+                self.battery.soc_calc = self.callback_value_reset_soc_to
+                self.battery.soc_calc_capacity_remain = None  # reset SOC calculation cache, since SOC was force set
+                logger.info(f"SOC reset to {self.battery.soc_calc}% by user")
             else:
                 self.battery.callback_soc_reset_to(path, value)
 
