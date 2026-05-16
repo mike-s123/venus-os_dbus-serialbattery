@@ -41,6 +41,7 @@
 * Added: LLT/JBD BLE: Add BLE UUID auto-detection for JBD/DH04 variants with https://github.com/mr-manuel/venus-os_dbus-serialbattery/pull/441 by @alexsanzder
 * Added: Prevent GUI modification installations by setting `GUI_INSTALL_CUSTOMIZATIONS` to `False` by @mr-manuel
 * Added: Set SOC manually via GUI if SOC_CALCULATION is enabled by @mr-manuel
+* Added: Temperature sensor compensation, see config.default.ini for info by @mike-s123
 * Added: Venus OS 3.7x GUIv2 support by @mr-manuel
 * Added: XDZN/WattCycle BLE BMS - Added new BMS driver for XDZN_001 and WT-prefixed devices (e.g. WattCycle 314Ah LiFePO4) communicating over Bluetooth by @synergiaenergia
 * Changed: Added integer conversion for Daly Can BMS Set SOC GUI method by @lex2k0
